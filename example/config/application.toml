@@ -1,0 +1,21 @@
+[app]
+name = "TODO"
+timezone = "Asia/Shanghai"
+
+[app.log]
+level = "info"
+
+[web]
+port = 20808
+debug = true
+
+[db]
+#type = "postgres"
+#dsn = ""
+type = "sqlite"
+dsn = "db.db"
+
+[redis]
+
+
+[mqtt]
