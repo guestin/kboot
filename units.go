@@ -32,8 +32,8 @@ type (
 		Code  int
 		Error error
 	}
-	ExecFunc func(uint Unit) ExitResult
-	InitFunc func(uint Unit) (ExecFunc, error)
+	ExecFunc func(unit Unit) ExitResult
+	InitFunc func(unit Unit) (ExecFunc, error)
 )
 
 type unitImpl struct {
