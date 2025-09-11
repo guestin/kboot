@@ -62,6 +62,13 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 	// response format
 	eCtx.Use(mid.FormatWithConfig(_rspFmtCfg))
 
+	//wait dependencies
+	if len(_dependencies) > 0 {
+		err = unit.WaitForUnits(time.Second*60, _dependencies...)
+		if err != nil {
+			return nil, merrors.ErrorWrap(err, "web waiting for dependencies failed")
+		}
+	}
 	for _, opt := range _options {
 		err = opt.apply(eCtx)
 		if err != nil {
@@ -73,13 +80,7 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 	exitChan := make(chan error)
 
 	return func(unit kboot.Unit) kboot.ExitResult {
-		//wait dependencies
-		if len(_dependencies) > 0 {
-			err = unit.WaitForUnits(time.Second*60, _dependencies...)
-			if err != nil {
-				return kboot.NewBadResult(merrors.ErrorWrap(err, "web waiting for dependencies failed"))
-			}
-		}
+
 		go func() {
 			exitChan <- eCtx.Start(cfg.ListenAddress)
 		}()
