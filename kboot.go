@@ -168,7 +168,7 @@ func (this *ctxImpl) execute() {
 		})
 	}
 	for idx := range this.units {
-		runner(this.units[idx])
+		go runner(this.units[idx])
 	}
 	<-this.ctx.Done()
 }
