@@ -67,7 +67,6 @@ func (this *unitImpl) WaitForUnits(timeout time.Duration, units ...string) error
 	if timeout <= 0 {
 		timeout = time.Minute * 1
 	}
-	initDone := make([]string, 0)
 	timer := time.NewTimer(timeout)
 	defer timer.Stop()
 	for {
@@ -78,18 +77,20 @@ func (this *unitImpl) WaitForUnits(timeout time.Duration, units ...string) error
 			return errors.New("wait timeout")
 		default:
 		}
+		allDone := true
 		for _, unit := range units {
 			res, ok := this.rootCtx.unitsInitRes.Load(unit)
 			if !ok {
+				allDone = false
 				continue
 			}
 			r := res.(ExitResult)
 			if r.Error != nil {
 				return errors.New(fmt.Sprintf("unit '%s' init failed : %v", unit, r.Error))
 			}
-			initDone = append(initDone, unit)
 		}
-		if len(initDone) == len(units) {
+		// check if all done
+		if allDone {
 			break
 		}
 	}
