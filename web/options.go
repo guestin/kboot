@@ -28,6 +28,13 @@ func RspFormat(config mid.FormatConfig) {
 	}
 }
 
+func Use(m ...echo.MiddlewareFunc) {
+	_options = append(_options, optionFunc(func(e *echo.Echo) error {
+		e.Use(m...)
+		return nil
+	}))
+}
+
 func Router(fn RouteBuilder) {
 	_options = append(_options, optionFunc(func(e *echo.Echo) error {
 		return fn(e)
