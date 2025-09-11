@@ -143,9 +143,6 @@ func (this *ctxImpl) execute() {
 			log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Green, true))).
 			Info("init success!")
 		taskStack.PushFront(unitItem)
-		this.logger.With(
-			log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Cyan, true))).
-			Info("running...")
 		group.AddTask(func() {
 			defer func() {
 				exitPanic := recover()
@@ -155,6 +152,9 @@ func (this *ctxImpl) execute() {
 						Panicf("exit unexpected, panic:%v", exitPanic)
 				}
 			}()
+			this.logger.With(
+				log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Cyan, true))).
+				Info("running...")
 			result := unitItem.Exec()
 			exitTagColor := log.Cyan
 			var logMeth = this.logger.With(
