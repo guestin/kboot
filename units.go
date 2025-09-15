@@ -16,14 +16,14 @@ type (
 		GetGlobalContext() Context
 		GetContext() context.Context
 		GetName() string
-		// WaitForUnits wait for special unit init done
-		WaitForUnits(timeout time.Duration, units ...string) error
 		// GetRootLogger get the root zap logger
 		GetRootLogger() *zap.Logger
 		// GetClassicLogger get current unit classic logger
 		GetClassicLogger() log.ClassicLog
 		// GetZapLogger get current unit zap logger
 		GetZapLogger() log.ZapLog
+
+		Depends(dep ...string)
 		// Done wait for  application exit
 		Done() <-chan struct{}
 	}
@@ -47,6 +47,14 @@ type unitImpl struct {
 	closeOnce  uint32
 	logger     log.ClassicLog
 	zapLogger  log.ZapLog
+	depends    []string
+}
+
+func (this *unitImpl) Depends(dep ...string) {
+	if len(dep) == 0 {
+		return
+	}
+	this.depends = append(this.depends, dep...)
 }
 
 func (this *unitImpl) GetGlobalContext() Context {
@@ -56,8 +64,29 @@ func (this *unitImpl) GetGlobalContext() Context {
 func (this *unitImpl) GetContext() context.Context {
 	return this.ctx
 }
+
 func (this *unitImpl) GetName() string {
 	return this.name
+}
+
+func (this *unitImpl) GetRootLogger() *zap.Logger {
+	return this.rootCtx.rootLogger
+}
+
+func (this *unitImpl) GetClassicLogger() log.ClassicLog {
+	return this.logger
+}
+
+func (this *unitImpl) GetZapLogger() log.ZapLog {
+	return this.zapLogger
+}
+
+func (this *unitImpl) Done() <-chan struct{} {
+	return this.ctx.Done()
+}
+
+func (this *unitImpl) Wait() {
+	<-this.done
 }
 
 func (this *unitImpl) WaitForUnits(timeout time.Duration, units ...string) error {
@@ -97,26 +126,6 @@ func (this *unitImpl) WaitForUnits(timeout time.Duration, units ...string) error
 	return nil
 }
 
-func (this *unitImpl) GetRootLogger() *zap.Logger {
-	return this.rootCtx.rootLogger
-}
-
-func (this *unitImpl) GetClassicLogger() log.ClassicLog {
-	return this.logger
-}
-
-func (this *unitImpl) GetZapLogger() log.ZapLog {
-	return this.zapLogger
-}
-
-func (this *unitImpl) Done() <-chan struct{} {
-	return this.ctx.Done()
-}
-
-func (this *unitImpl) Wait() {
-	<-this.done
-}
-
 func (this *unitImpl) HasExecFunc() bool {
 	return this.exeFunc != nil
 }
@@ -127,6 +136,9 @@ func (this *unitImpl) Exec() ExitResult {
 			close(this.done)
 		}
 	}()
+	this.logger.With(
+		log.UseColor(log.Cyan)).
+		Info("running...")
 	if !this.HasExecFunc() {
 		<-this.ctx.Done()
 		return NewSuccessResult()

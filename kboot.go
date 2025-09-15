@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"sort"
 	"strings"
 	"sync"
 	"syscall"
@@ -64,22 +65,26 @@ func (this *ctxImpl) GetViper() *viper.Viper {
 	return this.viper
 }
 
-func RegisterUnit(name string, fn InitFunc) {
+func RegisterUnit(name string, fn InitFunc, options ...UnitOption) {
 	assert.Must(len(strings.TrimSpace(name)) != 0, "name must not empty or blank").Panic()
 	assert.Must(fn != nil, "init func must not be nil").Panic()
 	for _, u := range _gCtx.units {
 		if u.GetName() == name {
-			assert.Must(true, fmt.Sprintf("name '%s' already exist", name)).Panic()
+			assert.Must(false, fmt.Sprintf("name '%s' already exist", name)).Panic()
 		}
 	}
-	_gCtx.units = append(_gCtx.units, &unitImpl{
+	unit := &unitImpl{
 		rootCtx:  _gCtx,
 		name:     name,
 		initFunc: fn,
-	})
+	}
+	for _, opt := range options {
+		opt.apply(unit)
+	}
+	_gCtx.units = append(_gCtx.units, unit)
 }
 
-func Bootstrap(ctx context.Context, opts ...Option) {
+func Bootstrap(ctx context.Context, options ...BootOption) {
 	if !_gCtx.hideBanner {
 		fmt.Print(_BANNER)
 	}
@@ -89,7 +94,7 @@ func Bootstrap(ctx context.Context, opts ...Option) {
 	_gCtx.ctx = _ctx
 	_gCtx.cancel = cancel
 
-	for _, opt := range opts {
+	for _, opt := range options {
 		opt.apply(_gCtx)
 	}
 	_gCtx.bootStrap()
@@ -126,11 +131,16 @@ func (this *ctxImpl) execute() {
 		}
 	}()
 	runner := func(unitItem *unitImpl) {
+		if len(unitItem.depends) > 0 {
+			err := unitItem.WaitForUnits(time.Minute*1, unitItem.depends...)
+			assert.Must(err == nil,
+				fmt.Sprintf("%s wait for dependencies '%s' failed", unitItem.name, strings.Join(unitItem.depends, ","))).
+				Panic()
+		}
 		this.logger.With(
 			log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Yellow, true))).
 			Info("start init...")
 		err := unitItem.Init(this)
-		//
 		if err != nil {
 			this.logger.With(
 				log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Red, true))).
@@ -152,9 +162,6 @@ func (this *ctxImpl) execute() {
 						Panicf("exit unexpected, panic:%v", exitPanic)
 				}
 			}()
-			this.logger.With(
-				log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Cyan, true))).
-				Info("running...")
 			result := unitItem.Exec()
 			exitTagColor := log.Cyan
 			var logMeth = this.logger.With(
@@ -167,8 +174,29 @@ func (this *ctxImpl) execute() {
 			logMeth("exit, code : %d ,err: %v", result.Code, result.Error)
 		})
 	}
+	// sort by dependencies
+	// a depends on b , then b should be before a
+	sort.SliceStable(this.units, func(i, j int) bool {
+		for _, dep := range this.units[j].depends {
+			if dep == this.units[i].GetName() {
+				return true
+			}
+			found := false
+			for idx := 0; idx < j; idx++ {
+				if dep == this.units[idx].GetName() {
+					found = true
+					break
+				}
+			}
+			if !found {
+				return true
+			}
+		}
+		return false
+	})
+
 	for idx := range this.units {
-		go runner(this.units[idx])
+		runner(this.units[idx])
 	}
 	<-this.ctx.Done()
 }

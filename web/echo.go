@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 	"reflect"
-	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/guestin/kboot"
@@ -62,13 +61,6 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 	// response format
 	eCtx.Use(mid.FormatWithConfig(_rspFmtCfg))
 
-	//wait dependencies
-	if len(_dependencies) > 0 {
-		err = unit.WaitForUnits(time.Second*60, _dependencies...)
-		if err != nil {
-			return nil, merrors.ErrorWrap(err, "web waiting for dependencies failed")
-		}
-	}
 	for _, opt := range _options {
 		err = opt.apply(eCtx)
 		if err != nil {
