@@ -1,11 +1,13 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"reflect"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/guestin/kboot"
+	"github.com/guestin/kboot/web/kerrors"
 	"github.com/guestin/kboot/web/mid"
 	"github.com/guestin/mob/merrors"
 	"github.com/guestin/mob/mvalidate"
@@ -98,11 +100,16 @@ func globalErrorHandle(err error, ctx echo.Context) {
 	case validator.ValidationErrors, mvalidate.ValidateError:
 		errCategory = 2
 		_ = ctx.JSON(http.StatusOK,
-			merrors.ErrorWrap0(err, -2000, "bad request params"))
-	case error:
+			merrors.ErrorWrap0(err, kerrors.CodeBadRequest, "bad request params"))
+	case *echo.HTTPError:
 		errCategory = 3
+		he := err.(*echo.HTTPError)
 		_ = ctx.JSON(http.StatusOK,
-			merrors.ErrorWrap0(err, -5000, "unexpect error"))
+			merrors.Errorf0(kerrors.HttpStatus2Code(he.Code), "%s", fmt.Sprint(he.Message)))
+	case error:
+		errCategory = 4
+		_ = ctx.JSON(http.StatusOK,
+			merrors.ErrorWrap0(err, kerrors.CodeInternalServer, "unexpect error"))
 	default:
 		ctx.Echo().DefaultHTTPErrorHandler(err, ctx)
 	}

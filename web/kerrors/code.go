@@ -43,3 +43,7 @@ func CodeText(code int) string {
 	}
 	return "未知错误"
 }
+
+func HttpStatus2Code(status int) int {
+	return (status/100)*1000 + status
+}
