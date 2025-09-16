@@ -128,7 +128,8 @@ func (this *ctxImpl) execute() {
 			taskItem.Wait()
 		}
 	}()
-	runner := func(unitItem *unitImpl) {
+
+	initer := func(unitItem *unitImpl) {
 		this.logger.With(
 			log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Yellow, true))).
 			Info("start init...")
@@ -143,6 +144,8 @@ func (this *ctxImpl) execute() {
 			log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Green, true))).
 			Info("init success!")
 		taskStack.PushFront(unitItem)
+	}
+	runner := func(unitItem *unitImpl) {
 		group.AddTask(func() {
 			defer func() {
 				exitPanic := recover()
@@ -188,6 +191,9 @@ func (this *ctxImpl) execute() {
 		return false
 	})
 
+	for idx := range this.units {
+		initer(this.units[idx])
+	}
 	for idx := range this.units {
 		runner(this.units[idx])
 	}

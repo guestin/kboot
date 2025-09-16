@@ -2,9 +2,12 @@ package mid
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 
+	"github.com/guestin/kboot/web/internal"
 	"github.com/guestin/kboot/web/kerrors"
+	"github.com/guestin/mob/merrors"
 	"github.com/labstack/echo/v4"
 	"github.com/ooopSnake/assert.go"
 
@@ -18,6 +21,7 @@ type (
 	// WrapConfig defines the config for Format middleware.
 	WrapConfig struct {
 		AllowDuplicateBind bool
+		SkipFormat         bool
 	}
 	WrapOption interface {
 		apply(cfg *WrapConfig)
@@ -32,6 +36,12 @@ func (f wrapOptionFunc) apply(cfg *WrapConfig) {
 func WrapAllowDuplicateBind() WrapOption {
 	return wrapOptionFunc(func(cfg *WrapConfig) {
 		cfg.AllowDuplicateBind = true
+	})
+}
+
+func SkipFormat() WrapOption {
+	return wrapOptionFunc(func(cfg *WrapConfig) {
+		cfg.SkipFormat = true
 	})
 }
 
@@ -62,6 +72,15 @@ func Wrap(handler interface{}, option ...WrapOption) echo.HandlerFunc {
 		}
 	}
 	return func(ctx echo.Context) error {
+		defer func() {
+			err := recover()
+			if err != nil {
+				internal.Log.Errorf("panic recover : \n%s\n", panicTrace(panicTraceSizeKb))
+				ctx.Set(CtxStatusKey, http.StatusInternalServerError)
+				ctx.Set(CtxErrorKey, kerrors.InternalErr("Server is busy"))
+			}
+			checkErrAndFlush(ctx, cfg)
+		}()
 		inParams := make([]reflect.Value, 0)
 		if inFlags&handlerHasCtx != 0 {
 			inParams = append(inParams, reflect.ValueOf(ctx))
@@ -212,4 +231,78 @@ func checkOutParam(name string, t reflect.Type) (reflect.Type, uint32) {
 		assert.Mustf(false, "'%s' not valid :illegal func return params num", name).Panic()
 	}
 	return outParamType, handlerFlags
+}
+
+func checkErrAndFlush(ctx echo.Context, config *WrapConfig) {
+	//requestId := ctx.Request().Header.Get(echo.HeaderXRequestID)
+	statusCode := 200
+	statusI := ctx.Get(CtxStatusKey)
+	if statusI != nil {
+		if status, ok := statusI.(int); ok && status > 0 {
+			statusCode = status
+		}
+	}
+	var resp interface{} = nil
+	ctxErr := ctx.Get(CtxErrorKey)
+	if ctxErr != nil {
+		if config.SkipFormat {
+			resp = ctxErr
+			goto flush
+		}
+		switch ctxErr.(type) {
+		case merrors.Error:
+			resp = ctxErr
+		case *echo.HTTPError:
+			he := ctxErr.(*echo.HTTPError)
+			resp = merrors.Errorf0(he.Code, "%s", fmt.Sprint(he.Message))
+		default:
+			resp = kerrors.ErrInternalf("Server is busy : %s", ctxErr)
+		}
+		goto flush
+	}
+	resp = ctx.Get(CtxRespKey)
+	if config.SkipFormat {
+		goto flush
+	}
+	if resp != nil {
+		switch resp.(type) {
+		case merrors.Error:
+			goto flush
+		default:
+			resp = kerrors.OkResult(resp)
+		}
+	} else {
+		resp = kerrors.OkResult(nil)
+	}
+
+flush:
+	// has rsp & no error need write response,otherwise err handler will handle
+	if !ctx.Response().Committed && resp != nil {
+		_ = ctx.JSON(statusCode, resp)
+		//_ = ctx.JSONPretty(statusCode, resp,jsonIndent)
+	}
+}
+
+const panicTraceSizeKb = 2
+
+func panicTrace(kb int) []byte {
+	s := []byte("/src/runtime/panic.go")
+	e := []byte("\ngoroutine ")
+	line := []byte("\n")
+	stack := make([]byte, kb<<10) //4KB
+	length := runtime.Stack(stack, true)
+	start := bytes.Index(stack, s)
+	stack = stack[start:length]
+	start = bytes.Index(stack, line) + 1
+	stack = stack[start:]
+	end := bytes.LastIndex(stack, line)
+	if end != -1 {
+		stack = stack[:end]
+	}
+	end = bytes.Index(stack, e)
+	if end != -1 {
+		stack = stack[:end]
+	}
+	stack = bytes.TrimRight(stack, "\n")
+	return stack
 }
