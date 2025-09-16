@@ -21,7 +21,7 @@ const (
 
 var codeText = map[int]string{
 	CodeOk:             "Success",
-	CodeUnauthorized:   "认证失败",
+	CodeUnauthorized:   "用户未登录或登录已失效",
 	CodeForbidden:      "无权限",
 	CodeNotFound:       "无记录",
 	CodeDuplicateAdd:   "重复添加",

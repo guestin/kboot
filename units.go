@@ -2,10 +2,7 @@ package kboot
 
 import (
 	"context"
-	"errors"
-	"fmt"
 	"sync/atomic"
-	"time"
 
 	"github.com/guestin/log"
 	"go.uber.org/zap"
@@ -89,43 +86,6 @@ func (this *unitImpl) Wait() {
 	<-this.done
 }
 
-func (this *unitImpl) WaitForUnits(timeout time.Duration, units ...string) error {
-	if len(units) == 0 {
-		return nil
-	}
-	if timeout <= 0 {
-		timeout = time.Minute * 1
-	}
-	timer := time.NewTimer(timeout)
-	defer timer.Stop()
-	for {
-		select {
-		case <-this.done:
-			return errors.New("application exit")
-		case <-timer.C:
-			return errors.New("wait timeout")
-		default:
-		}
-		allDone := true
-		for _, unit := range units {
-			res, ok := this.rootCtx.unitsInitRes.Load(unit)
-			if !ok {
-				allDone = false
-				continue
-			}
-			r := res.(ExitResult)
-			if r.Error != nil {
-				return errors.New(fmt.Sprintf("unit '%s' init failed : %v", unit, r.Error))
-			}
-		}
-		// check if all done
-		if allDone {
-			break
-		}
-	}
-	return nil
-}
-
 func (this *unitImpl) HasExecFunc() bool {
 	return this.exeFunc != nil
 }
@@ -136,9 +96,6 @@ func (this *unitImpl) Exec() ExitResult {
 			close(this.done)
 		}
 	}()
-	this.logger.With(
-		log.UseColor(log.Cyan)).
-		Info("running...")
 	if !this.HasExecFunc() {
 		<-this.ctx.Done()
 		return NewSuccessResult()

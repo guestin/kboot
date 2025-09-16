@@ -36,7 +36,6 @@ func init() {
 			rootLogger:        rootLogger,
 			logger:            log.NewTaggedClassicLogger(rootLogger, LoggerTag),
 			units:             make([]*unitImpl, 0),
-			unitsInitRes:      new(sync.Map),
 			configName:        DefaultConfigName,
 			configFileType:    DefaultConfigFileType,
 			configSearchPaths: []string{DefaultConfigFilePath},

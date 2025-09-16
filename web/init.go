@@ -28,7 +28,6 @@ func _init(unit kboot.Unit) (kboot.ExecFunc, error) {
 	if v.IsSet(buildCfgKey(CfgKeyDebug)) {
 		debug = v.GetBool(buildCfgKey(CfgKeyDebug))
 	}
-	unit.Depends(_dependencies...)
 	return _initEcho(unit, config{
 		ListenAddress: listenAddress,
 		Debug:         debug,

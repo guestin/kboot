@@ -12,10 +12,10 @@ var logger log.ClassicLog
 var zapLogger log.ZapLog
 
 func init() {
-	web.DependsOn("api")
-	web.Router(routeBuilder)
 	kboot.RegisterUnit("api", _init, kboot.DependsOn("db"))
+	web.Router(routeBuilder)
 }
+
 func _init(unit kboot.Unit) (kboot.ExecFunc, error) {
 	logger = unit.GetClassicLogger()
 	zapLogger = unit.GetZapLogger()

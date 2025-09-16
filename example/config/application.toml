@@ -9,6 +9,14 @@ level = "info"
 port = 20808
 debug = true
 
+[web.acl]
+enabled = false
+tokenFrom = "header" # header, query
+whitelist = [
+    "/api/user/login",
+    "/api/user/register"
+]
+
 [db]
 #type = "postgres"
 #dsn = ""

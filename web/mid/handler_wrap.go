@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"io"
 
-	"github.com/guestin/kboot/web/internal"
 	"github.com/guestin/kboot/web/kerrors"
 	"github.com/labstack/echo/v4"
 	"github.com/ooopSnake/assert.go"
@@ -91,8 +90,8 @@ func Wrap(handler interface{}, option ...WrapOption) echo.HandlerFunc {
 				err = ctx.Bind(req)
 			}
 			if err != nil {
-				ctx.Set(internal.CtxStatusKey, http.StatusOK)
-				ctx.Set(internal.CtxErrorKey, kerrors.ErrBadRequestf("Bad Request :%s ", err))
+				ctx.Set(CtxStatusKey, http.StatusOK)
+				ctx.Set(CtxErrorKey, kerrors.ErrBadRequestf("Bad Request :%s ", err))
 				return nil
 			}
 			if !reqIsPtr {
@@ -101,8 +100,8 @@ func Wrap(handler interface{}, option ...WrapOption) echo.HandlerFunc {
 			//validate
 			err = ctx.Validate(req)
 			if err != nil {
-				ctx.Set(internal.CtxStatusKey, http.StatusOK)
-				ctx.Set(internal.CtxErrorKey, kerrors.ErrBadRequestf("Bad Request :%s ", err))
+				ctx.Set(CtxStatusKey, http.StatusOK)
+				ctx.Set(CtxErrorKey, kerrors.ErrBadRequestf("Bad Request :%s ", err))
 				return nil
 			}
 			inParams = append(inParams, reflect.ValueOf(req))
@@ -121,17 +120,17 @@ func Wrap(handler interface{}, option ...WrapOption) echo.HandlerFunc {
 		var err error
 		if !outs[rspErrIdx].IsNil() { // check error
 			err = outs[rspErrIdx].Interface().(error)
-			ctx.Set(internal.CtxErrorKey, err)
+			ctx.Set(CtxErrorKey, err)
 		}
 		if rspDataIdx != -1 {
 			oKind := outs[rspDataIdx].Kind()
 			if oKind == reflect.Ptr || oKind == reflect.Struct {
 				if !(outs[rspDataIdx]).IsNil() {
 					rsp := outs[rspDataIdx].Interface()
-					ctx.Set(internal.CtxRespKey, rsp)
+					ctx.Set(CtxRespKey, rsp)
 				}
 			} else {
-				ctx.Set(internal.CtxRespKey, outs[rspDataIdx].Interface())
+				ctx.Set(CtxRespKey, outs[rspDataIdx].Interface())
 			}
 		}
 		return nil

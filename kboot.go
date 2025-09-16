@@ -9,7 +9,6 @@ import (
 	"os/signal"
 	"sort"
 	"strings"
-	"sync"
 	"syscall"
 	"time"
 
@@ -42,7 +41,6 @@ type ctxImpl struct {
 	rootLogger        *zap.Logger
 	logger            log.ClassicLog
 	units             []*unitImpl
-	unitsInitRes      *sync.Map
 	configName        string
 	configFileType    string
 	configSearchPaths []string
@@ -131,12 +129,6 @@ func (this *ctxImpl) execute() {
 		}
 	}()
 	runner := func(unitItem *unitImpl) {
-		if len(unitItem.depends) > 0 {
-			err := unitItem.WaitForUnits(time.Minute*1, unitItem.depends...)
-			assert.Must(err == nil,
-				fmt.Sprintf("%s wait for dependencies '%s' failed", unitItem.name, strings.Join(unitItem.depends, ","))).
-				Panic()
-		}
 		this.logger.With(
 			log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Yellow, true))).
 			Info("start init...")
@@ -145,10 +137,8 @@ func (this *ctxImpl) execute() {
 			this.logger.With(
 				log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Red, true))).
 				Fatal("init failed ,err : ", err)
-			this.unitsInitRes.Store(unitItem.GetName(), NewBadResult(err))
 			return
 		}
-		this.unitsInitRes.Store(unitItem.GetName(), NewSuccessResult())
 		this.logger.With(
 			log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Green, true))).
 			Info("init success!")
@@ -162,6 +152,9 @@ func (this *ctxImpl) execute() {
 						Panicf("exit unexpected, panic:%v", exitPanic)
 				}
 			}()
+			this.logger.With(
+				log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Cyan, true))).
+				Info("running...")
 			result := unitItem.Exec()
 			exitTagColor := log.Cyan
 			var logMeth = this.logger.With(

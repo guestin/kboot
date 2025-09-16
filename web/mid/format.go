@@ -41,25 +41,25 @@ func FormatWithConfig(config FormatConfig) echo.MiddlewareFunc {
 				err := recover()
 				if err != nil {
 					internal.Log.Errorf("panic recover : \n%s\n", PanicTrace(PanicTraceSizeKb))
-					ctx.Set(internal.CtxStatusKey, http.StatusInternalServerError)
-					ctx.Set(internal.CtxErrorKey, kerrors.InternalErr("Server is busy"))
+					ctx.Set(CtxStatusKey, http.StatusInternalServerError)
+					ctx.Set(CtxErrorKey, kerrors.InternalErr("Server is busy"))
 				}
 				checkErrAndFlush(ctx, config)
 			}()
-			ctxErr := ctx.Get(internal.CtxErrorKey)
+			ctxErr := ctx.Get(CtxErrorKey)
 			if ctxErr != nil {
 				return nil
 			}
 			err := next(ctx)
 			if err != nil {
 				if he, ok := err.(*echo.HTTPError); ok {
-					ctx.Set(internal.CtxStatusKey, he.Code)
+					ctx.Set(CtxStatusKey, he.Code)
 				} else if _, ok := err.(merrors.Error); ok {
-					ctx.Set(internal.CtxStatusKey, http.StatusOK)
+					ctx.Set(CtxStatusKey, http.StatusOK)
 				} else {
-					ctx.Set(internal.CtxStatusKey, http.StatusInternalServerError)
+					ctx.Set(CtxStatusKey, http.StatusInternalServerError)
 				}
-				ctx.Set(internal.CtxErrorKey, err)
+				ctx.Set(CtxErrorKey, err)
 			}
 			return nil
 		}
@@ -68,14 +68,14 @@ func FormatWithConfig(config FormatConfig) echo.MiddlewareFunc {
 func checkErrAndFlush(ctx echo.Context, config FormatConfig) {
 	//requestId := ctx.Request().Header.Get(echo.HeaderXRequestID)
 	statusCode := 200
-	statusI := ctx.Get(internal.CtxStatusKey)
+	statusI := ctx.Get(CtxStatusKey)
 	if statusI != nil {
 		if status, ok := statusI.(int); ok && status > 0 {
 			statusCode = status
 		}
 	}
 	var resp interface{} = nil
-	ctxErr := ctx.Get(internal.CtxErrorKey)
+	ctxErr := ctx.Get(CtxErrorKey)
 	if ctxErr != nil {
 		if config.Skipper(ctx) {
 			resp = ctxErr
@@ -92,7 +92,7 @@ func checkErrAndFlush(ctx echo.Context, config FormatConfig) {
 		}
 		goto flush
 	}
-	resp = ctx.Get(internal.CtxRespKey)
+	resp = ctx.Get(CtxRespKey)
 	if config.Skipper(ctx) {
 		goto flush
 	}

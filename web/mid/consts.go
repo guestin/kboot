@@ -1,4 +1,4 @@
-package internal
+package mid
 
 //goland:noinspection ALL
 const (

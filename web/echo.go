@@ -6,7 +6,6 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/guestin/kboot"
-	"github.com/guestin/kboot/web/internal"
 	"github.com/guestin/kboot/web/mid"
 	"github.com/guestin/mob/merrors"
 	"github.com/guestin/mob/mvalidate"
@@ -43,7 +42,7 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 	}
 	eCtx.Validator = &_EchoValidator{mValidator}
 
-	eCtx.Use(internal.WithContext(ctx))
+	eCtx.Use(mid.WithContext(ctx))
 	//recovery
 	eCtx.Use(middleware.Recover())
 	// request id
@@ -57,22 +56,18 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 	if cfg.Debug {
 		loggerOption = mid.LogReqHeader | mid.LogRespHeader | mid.LogJson | mid.LogForm
 	}
-	eCtx.Use(mid.Logger(loggerOption))
-	// response format
-	eCtx.Use(mid.FormatWithConfig(_rspFmtCfg))
-
-	for _, opt := range _options {
-		err = opt.apply(eCtx)
-		if err != nil {
-			return nil, err
-		}
-	}
+	eCtx.Use(mid.Log(loggerOption))
 
 	// start watcher
 	exitChan := make(chan error)
 
 	return func(unit kboot.Unit) kboot.ExitResult {
-
+		for _, opt := range _options {
+			err = opt.apply(eCtx)
+			if err != nil {
+				logger.Panic("use option failed ", err)
+			}
+		}
 		go func() {
 			exitChan <- eCtx.Start(cfg.ListenAddress)
 		}()

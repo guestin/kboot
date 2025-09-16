@@ -62,11 +62,11 @@ const (
 )
 
 // noinspection ALL
-func Logger(option LoggerOption) echo.MiddlewareFunc {
-	return LoggerWithConfig(LoggerConfig{Option: option})
+func Log(option LoggerOption) echo.MiddlewareFunc {
+	return LogWithConfig(LoggerConfig{Option: option})
 }
 
-func LoggerWithConfig(conf LoggerConfig) echo.MiddlewareFunc {
+func LogWithConfig(conf LoggerConfig) echo.MiddlewareFunc {
 	option := conf.Option
 	formatter := conf.Formatter
 	if formatter == nil {
@@ -178,7 +178,7 @@ func (w *bodyDumpResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 
 var DefaultWriter io.Writer = os.Stdout
 
-// LoggerConfig defines the config for Logger middleware.
+// LoggerConfig defines the config for Log middleware.
 type LoggerConfig struct {
 	// Optional. Default value is gin.defaultLogFormatter
 	Formatter LogFormatter
