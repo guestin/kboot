@@ -15,7 +15,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
+func _initEcho(unit kboot.Unit, cfg *Config) (kboot.ExecFunc, error) {
 	ctx := unit.GetContext()
 	eCtx := echo.New()
 	eCtx.HideBanner = true
@@ -39,6 +39,11 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 	}
 	eCtx.Use(mid.Log(loggerOption))
 
+	if cfg.Auth != nil {
+		eCtx.Use(mid.AuthWithConfig(*cfg.Auth))
+	} else {
+		eCtx.Use(mid.Auth())
+	}
 	// start watcher
 	exitChan := make(chan error)
 

@@ -32,7 +32,7 @@ func _init(unit kboot.Unit) (kboot.ExecFunc, error) {
 			return nil, merrors.Errorf("init datasource '%s' err : %v", ds, err)
 		}
 		_ormMaps.Store(ds, orm)
-		if ds == CfgKeyDefault {
+		if ds == cfgKeyDefault {
 			_ormDB = orm
 		}
 	}
@@ -50,16 +50,16 @@ func bindConfig(unit kboot.Unit) (map[string]*Config, error) {
 	ret := make(map[string]*Config)
 	defaultCfg := new(Config)
 	err := unit.UnmarshalSubConfig(ModuleName, defaultCfg,
-		kboot.MustBindEnv(CfgKeyDbDsn),
-		kboot.MustBindEnv(CfgKeyDbDebug),
-		kboot.MustBindEnv(CfgKeyDbType),
-		kboot.MustBindEnv(CfgKeyDbTimezone),
+		kboot.MustBindEnv(cfgKeyDbDsn),
+		kboot.MustBindEnv(cfgKeyDbDebug),
+		kboot.MustBindEnv(cfgKeyDbType),
+		kboot.MustBindEnv(cfgKeyDbTimezone),
 	)
 	if err != nil {
 		return nil, err
 	}
-	defaultCfg.name = CfgKeyDefault
-	ret[CfgKeyDefault] = defaultCfg
+	defaultCfg.name = cfgKeyDefault
+	ret[cfgKeyDefault] = defaultCfg
 	dbSettings := unit.GetRawViper().Sub(ModuleName).AllSettings()
 	for key, _ := range dbSettings {
 		switch dbSettings[key].(type) {
@@ -71,10 +71,10 @@ func bindConfig(unit kboot.Unit) (map[string]*Config, error) {
 			logger.Infof("try parser db settings '%s' ...", key)
 			var dsCfg = new(Config)
 			if err = unit.UnmarshalSubConfig(fmt.Sprintf("%s.%s", ModuleName, key), dsCfg,
-				kboot.MustBindEnv(CfgKeyDbDsn),
-				kboot.MustBindEnv(CfgKeyDbDebug),
-				kboot.MustBindEnv(CfgKeyDbType),
-				kboot.MustBindEnv(CfgKeyDbTimezone),
+				kboot.MustBindEnv(cfgKeyDbDsn),
+				kboot.MustBindEnv(cfgKeyDbDebug),
+				kboot.MustBindEnv(cfgKeyDbType),
+				kboot.MustBindEnv(cfgKeyDbTimezone),
 			); err != nil {
 				return nil, err
 			}

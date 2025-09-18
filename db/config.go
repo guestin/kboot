@@ -3,11 +3,11 @@ package db
 const (
 	ModuleName = "db"
 
-	CfgKeyDefault    = "default"
-	CfgKeyDbType     = "type"
-	CfgKeyDbDsn      = "dsn"
-	CfgKeyDbDebug    = "debug"
-	CfgKeyDbTimezone = "timezone"
+	cfgKeyDefault    = "default"
+	cfgKeyDbType     = "type"
+	cfgKeyDbDsn      = "dsn"
+	cfgKeyDbDebug    = "debug"
+	cfgKeyDbTimezone = "timezone"
 
 	DsTypePg      = "postgres"
 	DsTypeSqlLite = "sqlite"

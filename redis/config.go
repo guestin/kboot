@@ -5,11 +5,11 @@ const (
 	DefaultPort      = 6379
 	DefaultKeyPrefix = "cn.guestin.kboot"
 
-	CfgKeyHost      = "host"
-	CfgKeyPort      = "port"
-	CfgKeyDbIdx     = "db"
-	CfgKeyPassword  = "password"
-	CfgKeyKeyPrefix = "keyPrefix"
+	cfgKeyHost      = "host"
+	cfgKeyPort      = "port"
+	cfgKeyDbIdx     = "db"
+	cfgKeyPassword  = "password"
+	cfgKeyKeyPrefix = "keyPrefix"
 )
 
 type Config struct {

@@ -18,18 +18,13 @@ func _init(unit kboot.Unit) (kboot.ExecFunc, error) {
 	internal.ZapLog = unit.GetZapLogger()
 	logger = unit.GetClassicLogger()
 	zapLogger = unit.GetZapLogger()
-	v := unit.GetGlobalContext().GetViper()
-
-	listenAddress := DefaultListenAddress
-	if v.IsSet(buildCfgKey(CfgKeyListen)) {
-		listenAddress = v.GetString(buildCfgKey(CfgKeyListen))
+	cfg := new(Config)
+	err := unit.UnmarshalSubConfig(ModuleName, cfg,
+		kboot.MustBindEnv(CfgKeyListen),
+		kboot.MustBindEnv(CfgKeyDebug),
+	)
+	if err != nil {
+		return nil, err
 	}
-	debug := false
-	if v.IsSet(buildCfgKey(CfgKeyDebug)) {
-		debug = v.GetBool(buildCfgKey(CfgKeyDebug))
-	}
-	return _initEcho(unit, config{
-		ListenAddress: listenAddress,
-		Debug:         debug,
-	})
+	return _initEcho(unit, cfg)
 }

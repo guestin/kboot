@@ -23,12 +23,14 @@ type (
 	}
 	SessionProviderFunc func(ctx echo.Context, sessionId string) (*AuthSessionInfo, error)
 	AuthConfig          struct {
-		Enable          bool                `toml:"enable"` //是否启用，启用后将解析session info
-		Whitelist       []string            `toml:"whitelist"`
-		SessionIdKey    string              `toml:"sessionIdKey"`
-		SessionProvider SessionProviderFunc `toml:"-"`
+		Enable               bool     `toml:"enable" mapstructure:"enable"` //是否启用，启用后将解析session info
+		Whitelist            []string `toml:"whitelist" mapstructure:"whitelist"`
+		SessionIdKey         string   `toml:"sessionIdKey" mapstructure:"sessionIdKey"`
+		SessionExpireInHours int      `toml:"sessionExpireInHours" validate:"gte=0;lte=720" mapstructure:"sessionIdKey"`
 	}
 )
+
+var AuthSessionProvider SessionProviderFunc = nil
 
 var DefaultAuthConfig = AuthConfig{
 	Enable:       false,
@@ -97,8 +99,8 @@ func AuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
 			var sessionInfo *AuthSessionInfo = nil
 			var err error
 			if len(token) > 0 {
-				if config.SessionProvider != nil {
-					sessionInfo, err = config.SessionProvider(ctx, token)
+				if AuthSessionProvider != nil {
+					sessionInfo, err = AuthSessionProvider(ctx, token)
 					if err != nil && !ignore {
 						return err
 					}

@@ -20,17 +20,17 @@ func _init(unit kboot.Unit) (kboot.ExecFunc, error) {
 	zapLogger = unit.GetZapLogger()
 	_cfg = new(Config)
 	err := unit.UnmarshalSubConfig(ModuleName, _cfg,
-		kboot.MustBindEnv(CfgKeyHost),
-		kboot.MustBindEnv(CfgKeyPort),
-		kboot.MustBindEnv(CfgKeyDbIdx),
-		kboot.MustBindEnv(CfgKeyPassword),
-		kboot.MustBindEnv(CfgKeyKeyPrefix),
+		kboot.MustBindEnv(cfgKeyHost),
+		kboot.MustBindEnv(cfgKeyPort),
+		kboot.MustBindEnv(cfgKeyDbIdx),
+		kboot.MustBindEnv(cfgKeyPassword),
+		kboot.MustBindEnv(cfgKeyKeyPrefix),
 	)
 	if err != nil {
 		return nil, err
 	}
 	if _cfg.Port == 0 {
-		_cfg.Port = 6379
+		_cfg.Port = DefaultPort
 	}
 	if _cfg.KeyPrefix == "" {
 		_cfg.KeyPrefix = DefaultKeyPrefix

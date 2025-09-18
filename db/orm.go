@@ -26,7 +26,7 @@ func SetupMigrateBuilder(migrator MigrateFunc) {
 
 // ORM get the orm instance of special name , empty name will get the default
 func ORM(name ...string) *gorm.DB {
-	if len(name) == 0 || name[0] == "" || strings.ToLower(name[0]) == CfgKeyDefault {
+	if len(name) == 0 || name[0] == "" || strings.ToLower(name[0]) == cfgKeyDefault {
 		if _ormDB == nil {
 			assert.Must(true, "no default db configured").Panic()
 		}

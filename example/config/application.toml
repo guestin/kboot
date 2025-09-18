@@ -6,16 +6,18 @@ timezone = "Asia/Shanghai"
 level = "info"
 
 [web]
-port = 20808
+listenAddress = 20808
 debug = true
 
-[web.acl]
-enabled = false
-tokenFrom = "header" # header, query
+[web.auth]
+enabled = true
 whitelist = [
-    "/api/user/login",
-    "/api/user/register"
+    "/favicon.ico",
+    "/api/v1/litelink/todo/frameworks/versions",
 ]
+sessionIdKey = "kt-session-id"
+sessionExpireInHours = 24
+
 
 [db]
 #type = "postgres"
