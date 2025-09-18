@@ -13,34 +13,34 @@ import (
 )
 
 type (
-	ACLSessionInfo struct {
+	AuthSessionInfo struct {
 		IsAnonymous bool
 		Uid         string
 		SessionId   string
 		ExpireAt    int64
+		ClientIp    string
+		ClientUA    string
 		UserData    interface{}
 	}
-	SessionProviderFunc func(ctx context.Context, sessionId string) (*ACLSessionInfo, error)
-	ACLConfig           struct {
-		Enable          bool     `toml:"enable"`    //是否启用，启用后将解析session info
-		EnableAcl       bool     `toml:"enableAcl"` //是否启用权限控制 ，启用后将校验系统权限
-		Whitelist       []string `toml:"whitelist"`
-		SessionIdKey    string   `toml:"sessionIdKey"`
-		SessionProvider SessionProviderFunc
+	SessionProviderFunc func(ctx context.Context, sessionId string) (*AuthSessionInfo, error)
+	AuthConfig          struct {
+		Enable          bool                `toml:"enable"` //是否启用，启用后将解析session info
+		Whitelist       []string            `toml:"whitelist"`
+		SessionIdKey    string              `toml:"sessionIdKey"`
+		SessionProvider SessionProviderFunc `toml:"-"`
 	}
 )
 
-var DefaultACLConfig = ACLConfig{
+var DefaultAuthConfig = AuthConfig{
 	Enable:       false,
-	EnableAcl:    false,
 	Whitelist:    []string{},
 	SessionIdKey: "kt-session-id",
 }
 
-func anonymousSession() *ACLSessionInfo {
+func anonymousSession() *AuthSessionInfo {
 	now := time.Now()
 	randomId := strings.ReplaceAll(fmt.Sprintf("ANONYMOUS_%s", now.Format("20060102150405.000000")), ".", "")
-	return &ACLSessionInfo{
+	return &AuthSessionInfo{
 		IsAnonymous: true,
 		Uid:         randomId,
 		SessionId:   "",
@@ -49,21 +49,21 @@ func anonymousSession() *ACLSessionInfo {
 	}
 }
 
-func CurrentACLSession(ctx echo.Context) *ACLSessionInfo {
+func CurrentACLSession(ctx echo.Context) *AuthSessionInfo {
 	session := ctx.Get(CtxCallerInfoKey)
 	if session == nil {
 		return anonymousSession()
 	}
-	return session.(*ACLSessionInfo)
+	return session.(*AuthSessionInfo)
 }
 
-func ACL() echo.MiddlewareFunc {
-	return ACLWithConfig(DefaultACLConfig)
+func Auth() echo.MiddlewareFunc {
+	return AuthWithConfig(DefaultAuthConfig)
 }
 
-func ACLWithConfig(config ACLConfig) echo.MiddlewareFunc {
+func AuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
 	if strings.Trim(config.SessionIdKey, " ") == "" {
-		config.SessionIdKey = DefaultACLConfig.SessionIdKey
+		config.SessionIdKey = DefaultAuthConfig.SessionIdKey
 	}
 	excludePathSet := mob.NewConcurrentSet()
 	excludeRegList := make([]*regexp.Regexp, 0)
@@ -95,7 +95,7 @@ func ACLWithConfig(config ACLConfig) echo.MiddlewareFunc {
 			if len(token) == 0 && !ignore {
 				return kerrors.ErrUnauthorized()
 			}
-			var sessionInfo *ACLSessionInfo = nil
+			var sessionInfo *AuthSessionInfo = nil
 			var err error
 			if len(token) > 0 {
 				if config.SessionProvider != nil {
@@ -105,11 +105,12 @@ func ACLWithConfig(config ACLConfig) echo.MiddlewareFunc {
 					}
 				}
 			}
-			ctx.RealIP()
 			if sessionInfo == nil {
 				sessionInfo = anonymousSession()
 			}
 			sessionInfo.SessionId = token
+			sessionInfo.ClientIp = ctx.RealIP()
+			sessionInfo.ClientUA = ctx.Request().UserAgent()
 			ctx.Set(CtxCallerInfoKey, sessionInfo)
 			return next(ctx)
 		}
