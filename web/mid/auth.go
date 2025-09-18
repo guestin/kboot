@@ -1,7 +1,6 @@
 package mid
 
 import (
-	"context"
 	"fmt"
 	"regexp"
 	"strings"
@@ -22,7 +21,7 @@ type (
 		ClientUA    string
 		UserData    interface{}
 	}
-	SessionProviderFunc func(ctx context.Context, sessionId string) (*AuthSessionInfo, error)
+	SessionProviderFunc func(ctx echo.Context, sessionId string) (*AuthSessionInfo, error)
 	AuthConfig          struct {
 		Enable          bool                `toml:"enable"` //是否启用，启用后将解析session info
 		Whitelist       []string            `toml:"whitelist"`
@@ -99,7 +98,7 @@ func AuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
 			var err error
 			if len(token) > 0 {
 				if config.SessionProvider != nil {
-					sessionInfo, err = config.SessionProvider(UnwrapContext(ctx), token)
+					sessionInfo, err = config.SessionProvider(ctx, token)
 					if err != nil && !ignore {
 						return err
 					}
