@@ -37,7 +37,7 @@ func ORM(name ...string) *gorm.DB {
 	return ret.(*gorm.DB)
 }
 
-func newORM(ctx context.Context, config config) (*gorm.DB, error) {
+func newORM(ctx context.Context, config Config) (*gorm.DB, error) {
 	var dbDialer func(dsn string) gorm.Dialector
 	dbConfig := &gorm.Config{
 		//NowFunc: func() time.Time {

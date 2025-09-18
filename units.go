@@ -5,6 +5,8 @@ import (
 	"sync/atomic"
 
 	"github.com/guestin/log"
+	"github.com/guestin/mob/merrors"
+	"github.com/spf13/viper"
 	"go.uber.org/zap"
 )
 
@@ -20,7 +22,10 @@ type (
 		// GetZapLogger get current unit zap logger
 		GetZapLogger() log.ZapLog
 
-		UnMarshalConfig(key string, any interface{}) error
+		GetRawViper() *viper.Viper
+
+		UnmarshalSubConfig(key string, any interface{}, options ...CfgUnmarshalOption) error
+
 		Depends(dep ...string)
 		// Done wait for  application exit
 		Done() <-chan struct{}
@@ -48,22 +53,6 @@ type unitImpl struct {
 	depends    []string
 }
 
-func (this *unitImpl) UnMarshalConfig(key string, any interface{}) error {
-	v := this.GetGlobalContext().GetViper()
-	err := v.UnmarshalKey(key, any)
-	if err != nil {
-		return err
-	}
-	return MValidator().Validate(v)
-}
-
-func (this *unitImpl) Depends(dep ...string) {
-	if len(dep) == 0 {
-		return
-	}
-	this.depends = append(this.depends, dep...)
-}
-
 func (this *unitImpl) GetGlobalContext() Context {
 	return this.rootCtx
 }
@@ -86,6 +75,35 @@ func (this *unitImpl) GetClassicLogger() log.ClassicLog {
 
 func (this *unitImpl) GetZapLogger() log.ZapLog {
 	return this.zapLogger
+}
+
+func (this *unitImpl) GetRawViper() *viper.Viper {
+	return this.rootCtx.GetViper()
+}
+
+func (this *unitImpl) UnmarshalSubConfig(key string, any interface{}, options ...CfgUnmarshalOption) error {
+	v := this.GetGlobalContext().GetViper()
+	subV := v.Sub(key)
+	if subV == nil {
+		return nil
+	}
+	for _, opt := range options {
+		opt.apply(v)
+	}
+	if err := subV.Unmarshal(any); err != nil {
+		return merrors.ErrorWrapf(err, "parser [%s] config failed ", key)
+	}
+	if err := MValidator().Validate(any); err != nil {
+		return merrors.ErrorWrapf(err, "invlid [%s] config ", key)
+	}
+	return nil
+}
+
+func (this *unitImpl) Depends(dep ...string) {
+	if len(dep) == 0 {
+		return
+	}
+	this.depends = append(this.depends, dep...)
 }
 
 func (this *unitImpl) Done() <-chan struct{} {
