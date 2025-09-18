@@ -20,6 +20,7 @@ type (
 		// GetZapLogger get current unit zap logger
 		GetZapLogger() log.ZapLog
 
+		MarshalConfig(key string, any interface{}) error
 		Depends(dep ...string)
 		// Done wait for  application exit
 		Done() <-chan struct{}
@@ -45,6 +46,15 @@ type unitImpl struct {
 	logger     log.ClassicLog
 	zapLogger  log.ZapLog
 	depends    []string
+}
+
+func (this *unitImpl) MarshalConfig(key string, any interface{}) error {
+	v := this.GetGlobalContext().GetViper()
+	err := v.UnmarshalKey(key, any)
+	if err != nil {
+		return err
+	}
+	return MValidator().Validate(v)
 }
 
 func (this *unitImpl) Depends(dep ...string) {

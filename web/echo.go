@@ -3,7 +3,6 @@ package web
 import (
 	"fmt"
 	"net/http"
-	"reflect"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/guestin/kboot"
@@ -16,21 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type _EchoValidator struct {
-	v mvalidate.Validator
-}
-
-func (this *_EchoValidator) Validate(i interface{}) error {
-	k := reflect.TypeOf(i).Kind()
-	if k == reflect.Struct || (k == reflect.Ptr && reflect.ValueOf(i).Elem().Kind() == reflect.Struct) {
-		return this.v.Struct(i)
-	}
-	if k == reflect.Slice {
-		return this.v.Var(i, "required,dive,required")
-	}
-	return this.v.Var(i, "required")
-}
-
 func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 	ctx := unit.GetContext()
 	eCtx := echo.New()
@@ -38,12 +22,7 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 	eCtx.HidePort = false
 	eCtx.DisableHTTP2 = true
 	eCtx.HTTPErrorHandler = globalErrorHandle
-	mValidator, err := mvalidate.NewValidator(mvalidate.DefaultTranslator)
-	if err != nil {
-		return nil, err
-	}
-	eCtx.Validator = &_EchoValidator{mValidator}
-
+	eCtx.Validator = kboot.MValidator()
 	eCtx.Use(mid.WithContext(ctx))
 	//recovery
 	eCtx.Use(middleware.Recover())
@@ -65,7 +44,7 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 
 	return func(unit kboot.Unit) kboot.ExitResult {
 		for _, opt := range _options {
-			err = opt.apply(eCtx)
+			err := opt.apply(eCtx)
 			if err != nil {
 				logger.Panic("use option failed ", err)
 			}
@@ -74,7 +53,7 @@ func _initEcho(unit kboot.Unit, cfg config) (kboot.ExecFunc, error) {
 			exitChan <- eCtx.Start(cfg.ListenAddress)
 		}()
 		select {
-		case err = <-exitChan:
+		case err := <-exitChan:
 			logger.Info("API server exit", zap.Error(err))
 			return kboot.NewSuccessResult()
 		case <-unit.Done():
