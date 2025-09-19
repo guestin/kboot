@@ -26,7 +26,7 @@ type (
 		Enable               bool     `toml:"enable" mapstructure:"enable"` //是否启用，启用后将解析session info
 		Whitelist            []string `toml:"whitelist" mapstructure:"whitelist"`
 		SessionIdKey         string   `toml:"sessionIdKey" mapstructure:"sessionIdKey"`
-		SessionExpireInHours int      `toml:"sessionExpireInHours" validate:"gte=0;lte=720" mapstructure:"sessionIdKey"`
+		SessionExpireInHours int      `toml:"sessionExpireInHours" validate:"gte=0,lte=720" mapstructure:"sessionExpireInHours"`
 	}
 )
 

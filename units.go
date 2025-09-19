@@ -81,7 +81,13 @@ func (this *unitImpl) GetRawViper() *viper.Viper {
 	return this.rootCtx.GetViper()
 }
 
-func (this *unitImpl) UnmarshalSubConfig(key string, any interface{}, options ...CfgUnmarshalOption) error {
+func (this *unitImpl) UnmarshalSubConfig(key string, any interface{}, options ...CfgUnmarshalOption) (err error) {
+	defer func() {
+		exitPanic := recover()
+		if exitPanic != nil {
+			err = merrors.Errorf("umarshal [%s] config  panic :%v", key, exitPanic)
+		}
+	}()
 	v := this.GetGlobalContext().GetViper()
 	subV := v.Sub(key)
 	if subV == nil {
