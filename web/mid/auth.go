@@ -50,7 +50,7 @@ func anonymousSession() *AuthSessionInfo {
 	}
 }
 
-func CurrentACLSession(ctx echo.Context) *AuthSessionInfo {
+func CurrentSession(ctx echo.Context) *AuthSessionInfo {
 	session := ctx.Get(CtxCallerInfoKey)
 	if session == nil {
 		return anonymousSession()
