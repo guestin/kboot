@@ -3,9 +3,9 @@ package redis
 import (
 	"fmt"
 
-	goRedis "github.com/go-redis/redis"
 	"github.com/guestin/kboot"
 	"github.com/guestin/log"
+	goRedis "github.com/redis/go-redis/v9"
 )
 
 var logger log.ClassicLog

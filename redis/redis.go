@@ -1,7 +1,7 @@
 package redis
 
 import (
-	goRedis "github.com/go-redis/redis"
+	goRedis "github.com/redis/go-redis/v9"
 )
 
 type Client struct {
