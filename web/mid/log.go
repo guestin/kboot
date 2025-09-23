@@ -100,7 +100,7 @@ func LogWithConfig(conf LoggerConfig) echo.MiddlewareFunc {
 			if ctx.Request().ContentLength > 0 && shouldDump(option, reqCt) {
 				reqBody := make([]byte, 0)
 				reqBody, _ = io.ReadAll(ctx.Request().Body)
-				ctx.Request().Body = io.NopCloser(bytes.NewBuffer(reqBody)) // Reset
+				ctx.Request().Body = io.NopCloser(bytes.NewBuffer(reqBody)) // reset
 				param.RequestBody = reqBody
 			}
 			resBody := new(bytes.Buffer)
