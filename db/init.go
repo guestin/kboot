@@ -2,11 +2,14 @@ package db
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/guestin/kboot"
 	"github.com/guestin/log"
 	"github.com/guestin/mob/merrors"
 )
+
+var Location = time.FixedZone("UTC", int((time.Hour * 8).Seconds()))
 
 var logger log.ClassicLog
 var zapLogger log.ZapLog
@@ -19,6 +22,7 @@ func _init(unit kboot.Unit) (kboot.ExecFunc, error) {
 	logger = unit.GetClassicLogger()
 	zapLogger = unit.GetZapLogger()
 	cfgList, err := bindConfig(unit)
+	timezone := unit.GetGlobalContext().GetTimezone()
 	if err != nil {
 		return nil, err
 	}
@@ -27,7 +31,7 @@ func _init(unit kboot.Unit) (kboot.ExecFunc, error) {
 	}
 	for _, cfg := range cfgList {
 		ds := cfg.name
-		orm, err := newORM(unit.GetContext(), *cfg)
+		orm, err := newORM(unit.GetContext(), *cfg, timezone)
 		if err != nil {
 			return nil, merrors.Errorf("init datasource '%s' err : %v", ds, err)
 		}

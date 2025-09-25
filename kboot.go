@@ -24,6 +24,7 @@ var _gCtx *ctxImpl
 type (
 	Context interface {
 		GetAppName() string
+		GetTimezone() *time.Location
 		// GetViper get the viper instance
 		GetViper() *viper.Viper
 		Shutdown(err error)
@@ -52,6 +53,10 @@ type ctxImpl struct {
 
 func (this *ctxImpl) GetAppName() string {
 	return this.appName
+}
+
+func (this *ctxImpl) GetTimezone() *time.Location {
+	return this.timezone
 }
 
 func (this *ctxImpl) Shutdown(err error) {

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/ooopSnake/assert.go"
 	"gorm.io/driver/postgres"
@@ -37,12 +38,12 @@ func ORM(name ...string) *gorm.DB {
 	return ret.(*gorm.DB)
 }
 
-func newORM(ctx context.Context, config Config) (*gorm.DB, error) {
+func newORM(ctx context.Context, config Config, location *time.Location) (*gorm.DB, error) {
 	var dbDialer func(dsn string) gorm.Dialector
 	dbConfig := &gorm.Config{
-		//NowFunc: func() time.Time {
-		//	return time.Now().In(location)
-		//},
+		NowFunc: func() time.Time {
+			return time.Now().In(location)
+		},
 	}
 	switch config.Type {
 	case DsTypeSqlLite:

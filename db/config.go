@@ -14,9 +14,8 @@ const (
 )
 
 type Config struct {
-	name     string
-	Type     string `toml:"type" validate:"required,oneof=postgres sqlite" mapstructure:"type"`
-	DSN      string `toml:"dsn" validate:"required" mapstructure:"dsn"`
-	Debug    bool   `toml:"debug" mapstructure:"debug"`
-	Timezone string `toml:"timezone" mapstructure:"timezone"`
+	name  string
+	Type  string `toml:"type" validate:"required,oneof=postgres sqlite" mapstructure:"type"`
+	DSN   string `toml:"dsn" validate:"required" mapstructure:"dsn"`
+	Debug bool   `toml:"debug" mapstructure:"debug"`
 }
