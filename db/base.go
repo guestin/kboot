@@ -30,14 +30,14 @@ func (this *UpdatedAt) AfterFind(*gorm.DB) (err error) {
 }
 
 type DeletedAt struct {
-	DeletedAt   *time.Time `gorm:"column:deleted_at" json:"-"`
-	DeletedAtTs *int64     `gorm:"-" json:"deletedAt,omitempty"`
+	DeletedAt   gorm.DeletedAt `gorm:"column:deleted_at" json:"-"`
+	DeletedAtTs *int64         `gorm:"-" json:"deletedAt,omitempty"`
 }
 
 func (this *DeletedAt) AfterFind(*gorm.DB) (err error) {
-	if this.DeletedAt != nil {
+	if this.DeletedAt.Valid {
 		this.DeletedAtTs = new(int64)
-		*this.DeletedAtTs = this.DeletedAt.Unix()
+		*this.DeletedAtTs = this.DeletedAt.Time.Unix()
 	}
 	return
 }
