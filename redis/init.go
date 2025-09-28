@@ -1,10 +1,9 @@
 package redis
 
 import (
-	"fmt"
-
 	"github.com/guestin/kboot"
 	"github.com/guestin/log"
+	"github.com/guestin/mob/merrors"
 	goRedis "github.com/redis/go-redis/v9"
 )
 
@@ -29,18 +28,19 @@ func _init(unit kboot.Unit) (kboot.ExecFunc, error) {
 	if err != nil {
 		return nil, err
 	}
-	if _cfg.Port == 0 {
-		_cfg.Port = DefaultPort
-	}
 	if _cfg.KeyPrefix == "" {
 		_cfg.KeyPrefix = DefaultKeyPrefix
 	}
-	option := &goRedis.Options{
-		Addr:     fmt.Sprintf("%s:%d", _cfg.Host, _cfg.Port),
-		Password: _cfg.Password,
+	option := &goRedis.UniversalOptions{
+		Addrs:    _cfg.Address,
 		DB:       _cfg.DbIdx,
+		Password: _cfg.Password,
 	}
-	_redisCli = &Client{Client: goRedis.NewClient(option)}
+	cli := goRedis.NewUniversalClient(option)
+	if err = cli.Ping(unit.GetContext()).Err(); err != nil {
+		return nil, merrors.ErrorWrap(err, "redis connect failed")
+	}
+	_redisCli = &Client{UniversalClient: cli}
 	return _execute, nil
 }
 

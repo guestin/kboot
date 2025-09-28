@@ -5,7 +5,7 @@ import (
 )
 
 type Client struct {
-	*goRedis.Client
+	goRedis.UniversalClient
 }
 
 var _redisCli *Client = nil
