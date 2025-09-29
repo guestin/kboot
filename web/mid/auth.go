@@ -120,6 +120,7 @@ func AuthWithConfig(config AuthConfig) echo.MiddlewareFunc {
 				}
 			}
 			if userData != nil {
+				sessionInfo.IsAnonymous = false
 				sessionInfo.Uid = userData.GetUid()
 				sessionInfo.UserData = userData
 				sessionInfo.ExpireAt = userData.GetExpireAt()
