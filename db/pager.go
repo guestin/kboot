@@ -5,7 +5,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/guestin/kboot/web/kerrors"
 	"github.com/guestin/mob/merrors"
+	"github.com/ooopSnake/assert.go"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
@@ -30,49 +32,49 @@ type PageRequest struct {
 	Order string `json:"order" query:"order" form:"order" path:"order" form:"order" validate:"omitempty,oneof=ASC DESC"`
 }
 
-func (this *PageRequest) PageV() int {
+func (this PageRequest) PageV() int {
 	if this.Page != nil && *this.Page > 0 {
 		return *this.Page
 	}
 	return 1
 }
 
-func (this *PageRequest) PageSizeV() int {
+func (this PageRequest) PageSizeV() int {
 	if this.PageSize != nil && *this.PageSize > 0 {
 		return *this.PageSize
 	}
 	return 10
 }
 
-func (this *PageRequest) BeginV() int64 {
+func (this PageRequest) BeginV() int64 {
 	if this.Begin > 0 {
 		return this.Begin
 	}
 	return 0
 }
-func (this *PageRequest) EndV() int64 {
+func (this PageRequest) EndV() int64 {
 	if this.End != nil && *this.End > 0 {
 		return *this.End
 	}
 	return 0
 }
 
-func (this *PageRequest) OrderV() string {
+func (this PageRequest) OrderV() string {
 	if this.Order != "" {
 		return this.Order
 	}
 	return "ASC"
 }
 
-func (this *PageRequest) Offset() int {
+func (this PageRequest) Offset() int {
 	return (this.PageV() - 1) * this.PageSizeV()
 }
 
-func (this *PageRequest) Limit() int {
+func (this PageRequest) Limit() int {
 	return this.PageSizeV()
 }
 
-func (this *PageRequest) BuildResponse(results interface{}) *PageResponse {
+func (this PageRequest) BuildResponse(results interface{}) *PageResponse {
 	return &PageResponse{
 		Total:    0,
 		Page:     this.PageV(),
@@ -86,6 +88,111 @@ type PageResponse struct {
 	Page     int         `json:"page"`
 	PageSize int         `json:"pageSize"`
 	Results  interface{} `json:"results"`
+}
+
+type (
+	Option interface {
+		apply(ctx *pageCtx)
+	}
+	pageCtx struct {
+		db              *gorm.DB
+		beginEndCol     string
+		resultConverter resultConverterFunc
+	}
+	resultConverterFunc func(src interface{}) interface{}
+	wrapOptionFunc      func(ctx *pageCtx)
+)
+
+func (f wrapOptionFunc) apply(ctx *pageCtx) {
+	f(ctx)
+}
+
+func WithQuery(query interface{}, args ...interface{}) Option {
+	return wrapOptionFunc(func(ctx *pageCtx) {
+		ctx.db.Where(query, args...)
+	})
+}
+
+func CustomBECol(timeCol string) Option {
+	return wrapOptionFunc(func(ctx *pageCtx) {
+		ctx.beginEndCol = timeCol
+	})
+}
+
+func WithResultConverter(fn resultConverterFunc) Option {
+	return wrapOptionFunc(func(ctx *pageCtx) {
+		ctx.resultConverter = fn
+	})
+}
+
+func PageQueryV2[T PageableTable](db *gorm.DB, page PageRequest, opts ...Option) (*PageResponse, error) {
+	assert.Must(db != nil, "db must not be nil").Panic()
+	ctx := &pageCtx{
+		db:          db,
+		beginEndCol: "created_at",
+	}
+	for _, opt := range opts {
+		if opt != nil {
+			opt.apply(ctx)
+		}
+	}
+	query := ctx.db
+
+	var table T
+	if len(page.OrderBy) > 0 {
+		//check order
+		colLimit := table.OrderColLimit()
+		orderCol, ok := colLimit[page.OrderBy]
+		if !ok {
+			return nil, merrors.Errorf("orderBy '%s' not allowed , must be one of [%s]", page.OrderBy,
+				mkArrayString(colLimit))
+		}
+		query = query.Order(fmt.Sprintf("%s %s", orderCol, page.OrderV()))
+	} else {
+		//default order by begin end filter column desc
+		query = query.Order(fmt.Sprintf("%s DESC", ctx.beginEndCol))
+	}
+	if len(page.Key) > 0 {
+		key := page.Key
+		orCols := make([]string, 0)
+		args := make([]interface{}, 0)
+		for _, col := range table.Filter() {
+			orCols = append(orCols, fmt.Sprintf("%s LIKE ? ", col))
+			args = append(args, "%"+key+"%")
+		}
+		if len(orCols) > 0 {
+			orQueryStr := fmt.Sprintf("(%s)", strings.Join(orCols, " OR "))
+			query = query.Where(orQueryStr, args...)
+		}
+	}
+	dbResults := make([]*T, 0)
+	total := int64(0)
+	err := query.Offset(-1).
+		Model(table).
+		Limit(-1).
+		Count(&total).
+		Offset(page.Offset()).
+		Limit(page.Limit()).
+		Find(&dbResults).Error
+	if err != nil {
+		return nil, kerrors.DBRecordRetrieveErr(err)
+	}
+	resp := &PageResponse{
+		Total:    0,
+		Page:     page.PageV(),
+		PageSize: page.PageSizeV(),
+		Results:  nil,
+	}
+	if ctx.resultConverter != nil {
+		resultsCvt := make([]interface{}, 0)
+		for i := range dbResults {
+			resultsCvt = append(resultsCvt, ctx.resultConverter(dbResults[i]))
+		}
+		resp.Results = resultsCvt
+	} else {
+		resp.Results = dbResults
+	}
+	return resp, nil
 }
 
 //goland:noinspection ALL
