@@ -75,7 +75,7 @@ func Wrap(handler interface{}, option ...WrapOption) echo.HandlerFunc {
 		defer func() {
 			err := recover()
 			if err != nil {
-				internal.Log.Errorf("panic recover : \n%s\n", panicTrace(panicTraceSizeKb))
+				internal.Log.Errorf("panic recover : %s\n%s\n", err, panicTrace(panicTraceSizeKb))
 				ctx.Set(CtxStatusKey, http.StatusInternalServerError)
 				ctx.Set(CtxErrorKey, kerrors.InternalErr("Server is busy"))
 			}
