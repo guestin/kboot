@@ -95,7 +95,7 @@ type (
 		apply(ctx *pageCtx)
 	}
 	pageCtx struct {
-		db              *gorm.DB
+		query           *gorm.DB
 		beginEndCol     string
 		resultConverter resultConverterFunc
 	}
@@ -109,7 +109,7 @@ func (f wrapOptionFunc) apply(ctx *pageCtx) {
 
 func WithQuery(query interface{}, args ...interface{}) Option {
 	return wrapOptionFunc(func(ctx *pageCtx) {
-		ctx.db.Where(query, args...)
+		ctx.query.Where(query, args...)
 	})
 }
 
@@ -125,10 +125,10 @@ func WithResultConverter(fn resultConverterFunc) Option {
 	})
 }
 
-func PageQueryV2[T PageableTable](db *gorm.DB, page PageRequest, opts ...Option) (*PageResponse, error) {
-	assert.Must(db != nil, "db must not be nil").Panic()
+func PageQueryV2[T PageableTable](query *gorm.DB, page PageRequest, m PageableTable, opts ...Option) (*PageResponse, error) {
+	assert.Must(query != nil, "query must not be nil").Panic()
 	ctx := &pageCtx{
-		db:          db,
+		query:       query,
 		beginEndCol: "created_at",
 	}
 	for _, opt := range opts {
@@ -136,39 +136,36 @@ func PageQueryV2[T PageableTable](db *gorm.DB, page PageRequest, opts ...Option)
 			opt.apply(ctx)
 		}
 	}
-	query := ctx.db
-
-	var table T
 	if len(page.OrderBy) > 0 {
 		//check order
-		colLimit := table.OrderColLimit()
+		colLimit := m.OrderColLimit()
 		orderCol, ok := colLimit[page.OrderBy]
 		if !ok {
 			return nil, merrors.Errorf("orderBy '%s' not allowed , must be one of [%s]", page.OrderBy,
 				mkArrayString(colLimit))
 		}
-		query = query.Order(fmt.Sprintf("%s %s", orderCol, page.OrderV()))
+		ctx.query = ctx.query.Order(fmt.Sprintf("%s %s", orderCol, page.OrderV()))
 	} else {
 		//default order by begin end filter column desc
-		query = query.Order(fmt.Sprintf("%s DESC", ctx.beginEndCol))
+		ctx.query = ctx.query.Order(fmt.Sprintf("%s DESC", ctx.beginEndCol))
 	}
 	if len(page.Key) > 0 {
 		key := page.Key
 		orCols := make([]string, 0)
 		args := make([]interface{}, 0)
-		for _, col := range table.Filter() {
+		for _, col := range m.Filter() {
 			orCols = append(orCols, fmt.Sprintf("%s LIKE ? ", col))
 			args = append(args, "%"+key+"%")
 		}
 		if len(orCols) > 0 {
 			orQueryStr := fmt.Sprintf("(%s)", strings.Join(orCols, " OR "))
-			query = query.Where(orQueryStr, args...)
+			ctx.query = ctx.query.Where(orQueryStr, args...)
 		}
 	}
-	dbResults := make([]*T, 0)
+	dbResults := make([]T, 0)
 	total := int64(0)
-	err := query.Offset(-1).
-		Model(table).
+	err := ctx.query.Offset(-1).
+		Model(m).
 		Limit(-1).
 		Count(&total).
 		Offset(page.Offset()).
