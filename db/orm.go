@@ -41,6 +41,7 @@ func ORM(name ...string) *gorm.DB {
 func newORM(ctx context.Context, config Config, location *time.Location) (*gorm.DB, error) {
 	var dbDialer func(dsn string) gorm.Dialector
 	dbConfig := &gorm.Config{
+		DisableForeignKeyConstraintWhenMigrating: true,
 		NowFunc: func() time.Time {
 			return time.Now().In(location)
 		},
