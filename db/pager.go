@@ -175,7 +175,7 @@ func PageQueryV2[T PageableTable](query *gorm.DB, page PageRequest, m PageableTa
 		return nil, kerrors.DBRecordRetrieveErr(err)
 	}
 	resp := &PageResponse{
-		Total:    0,
+		Total:    total,
 		Page:     page.PageV(),
 		PageSize: page.PageSizeV(),
 		Results:  nil,
