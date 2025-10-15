@@ -3,8 +3,6 @@
 build/
 
 .DS_Store
-dev.db
-
 vendor/
 # Binaries for programs and plugins
 *.exe

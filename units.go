@@ -5,27 +5,12 @@ import (
 	"sync/atomic"
 
 	"github.com/guestin/log"
-	"github.com/guestin/mob/merrors"
-	"github.com/spf13/viper"
-	"go.uber.org/zap"
 )
 
 type (
 	Unit interface {
-		GetGlobalContext() Context
 		GetContext() context.Context
 		GetName() string
-		// GetRootLogger get the root zap logger
-		GetRootLogger() *zap.Logger
-		// GetClassicLogger get current unit classic logger
-		GetClassicLogger() log.ClassicLog
-		// GetZapLogger get current unit zap logger
-		GetZapLogger() log.ZapLog
-
-		GetRawViper() *viper.Viper
-
-		UnmarshalSubConfig(key string, any interface{}, options ...CfgUnmarshalOption) error
-
 		Depends(dep ...string)
 		// Done wait for  application exit
 		Done() <-chan struct{}
@@ -40,7 +25,7 @@ type (
 )
 
 type unitImpl struct {
-	rootCtx    *ctxImpl
+	rootCtx    *_ctx
 	ctx        context.Context
 	name       string
 	initFunc   InitFunc
@@ -53,56 +38,12 @@ type unitImpl struct {
 	depends    []string
 }
 
-func (this *unitImpl) GetGlobalContext() Context {
-	return this.rootCtx
-}
-
 func (this *unitImpl) GetContext() context.Context {
 	return this.ctx
 }
 
 func (this *unitImpl) GetName() string {
 	return this.name
-}
-
-func (this *unitImpl) GetRootLogger() *zap.Logger {
-	return this.rootCtx.rootLogger
-}
-
-func (this *unitImpl) GetClassicLogger() log.ClassicLog {
-	return this.logger
-}
-
-func (this *unitImpl) GetZapLogger() log.ZapLog {
-	return this.zapLogger
-}
-
-func (this *unitImpl) GetRawViper() *viper.Viper {
-	return this.rootCtx.GetViper()
-}
-
-func (this *unitImpl) UnmarshalSubConfig(key string, any interface{}, options ...CfgUnmarshalOption) (err error) {
-	defer func() {
-		exitPanic := recover()
-		if exitPanic != nil {
-			err = merrors.Errorf("umarshal [%s] config  panic :%v", key, exitPanic)
-		}
-	}()
-	v := this.GetGlobalContext().GetViper()
-	subV := v.Sub(key)
-	if subV == nil {
-		return nil
-	}
-	for _, opt := range options {
-		opt.apply(v)
-	}
-	if err := subV.Unmarshal(any); err != nil {
-		return merrors.ErrorWrapf(err, "parser [%s] config failed ", key)
-	}
-	if err := MValidator().Validate(any); err != nil {
-		return merrors.ErrorWrapf(err, "invlid [%s] config ", key)
-	}
-	return nil
 }
 
 func (this *unitImpl) Depends(dep ...string) {
@@ -141,13 +82,13 @@ func (this *unitImpl) Cancel() {
 	this.cancelFunc()
 }
 
-func (this *unitImpl) Init(rootCtx *ctxImpl) error {
+func (this *unitImpl) Init(rootCtx *_ctx) error {
 	ctx, cancelFunc := context.WithCancel(rootCtx.ctx)
 	this.rootCtx = rootCtx
 	this.ctx = ctx
 	this.cancelFunc = cancelFunc
-	this.logger = log.NewTaggedClassicLogger(rootCtx.rootLogger, this.GetName())
-	this.zapLogger = log.NewTaggedZapLogger(rootCtx.rootLogger, this.GetName())
+	this.logger = rootCtx.GetTaggedLogger(this.GetName())
+	this.zapLogger = rootCtx.GetTaggedZapLogger(this.GetName())
 	this.done = make(chan struct{})
 	exeFunc, err := this.initFunc(this)
 	if err != nil {
