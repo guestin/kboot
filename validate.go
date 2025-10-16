@@ -3,11 +3,13 @@ package kboot
 import (
 	"reflect"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/guestin/mob/mvalidate"
 )
 
 type Validator interface {
 	Validate(i interface{}) error
+	Raw() *validator.Validate
 }
 
 var _mValidator Validator
@@ -27,6 +29,10 @@ func init() {
 
 type _validator struct {
 	v mvalidate.Validator
+}
+
+func (this *_validator) Raw() *validator.Validate {
+	return this.v.Raw()
 }
 
 func (this *_validator) Validate(i interface{}) error {
