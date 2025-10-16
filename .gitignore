@@ -1,6 +1,7 @@
 .idea/
 .vscode/
 build/
+test/
 
 .DS_Store
 vendor/

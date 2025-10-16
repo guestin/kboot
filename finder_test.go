@@ -8,9 +8,9 @@ import (
 	"go.uber.org/zap"
 )
 
-func TestAutoFindConfig(t *testing.T) {
+func TestFinderImpl_FindConfigs(t *testing.T) {
 	rootLogger, _ := log.EasyInitConsoleLogger(zap.DebugLevel, zap.DPanicLevel)
 	logger := log.NewTaggedZapLogger(rootLogger, "test")
-	fs := findConfigFiles(logger, []string{"./config"}, "", viper.SupportedExts)
-	t.Log("fs", fs)
+	finder := newConfigFinder(logger)
+	_, _ = finder.FindConfigs("./test/config", viper.SupportedExts...)
 }

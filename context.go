@@ -128,6 +128,11 @@ func (this *_ctx) bootStrap() {
 
 func (this *_ctx) autoConfig() error {
 	this.logger.Info("Load config ...")
+	pflag.Parse()
+	err := viper.BindPFlags(pflag.CommandLine)
+	if err != nil {
+		return err
+	}
 	// load raw bytes first
 	if len(this.configData) > 0 {
 		err := this.viper.ReadConfig(bytes.NewReader(this.configData))
@@ -139,7 +144,7 @@ func (this *_ctx) autoConfig() error {
 	}
 	this.prepareConfigPath()
 	// load main config from file
-	err := this.viper.MergeInConfig()
+	err = this.viper.MergeInConfig()
 	if err != nil {
 		if !errors.As(err, &viper.ConfigFileNotFoundError{}) {
 			return err
@@ -147,27 +152,48 @@ func (this *_ctx) autoConfig() error {
 		// Config file not found; ignore error
 	}
 	activeProfile := this.GetActivatedProfile()
+	this.logger.Info("active profile ", zap.Any("activeProfile", activeProfile))
 	exts := make([]string, 0)
 	if this.configFileType != "" {
 		exts = append(exts, this.configFileType)
 	} else {
 		exts = append(exts, viper.SupportedExts...)
 	}
-	// search other config file
-	cfgFiles := findConfigFiles(this.logger, this.configSearchPaths, activeProfile, exts)
-	for _, f := range cfgFiles {
-		this.viper.SetConfigFile(f)
-		err = this.viper.MergeInConfig()
+	finder := newConfigFinder(this.logger)
+	// load other config
+	for _, dir := range this.configSearchPaths {
+		configList, err := finder.FindConfigs(dir, exts...)
 		if err != nil {
-			if !errors.As(err, &viper.ConfigFileNotFoundError{}) {
-				return errors.Wrapf(err, "load config %s error", f)
+			return err
+		}
+		for cfgName := range configList {
+			cfg := configList[cfgName]
+			if cfg.Default != nil && cfgName != DefaultConfigName {
+				this.logger.Info("apply default config ", zap.String("config", cfgName))
+				if err := this.applyConfig(cfg.Default.FilePath); err != nil {
+					return err
+				}
+			}
+			for i := range cfg.Profiles {
+				cfgFile := cfg.Profiles[i]
+				// apply special profile
+				if strings.EqualFold(cfgFile.Profile, activeProfile) {
+					this.logger.Info("apply config ", zap.String("config", cfgName), zap.String("profile", activeProfile))
+					if err := this.applyConfig(cfgFile.FilePath); err != nil {
+						return err
+					}
+				}
 			}
 		}
 	}
-	pflag.Parse()
-	err = viper.BindPFlags(pflag.CommandLine)
+	return nil
+}
+
+func (this *_ctx) applyConfig(file string) error {
+	this.viper.SetConfigFile(file)
+	err := this.viper.MergeInConfig()
 	if err != nil {
-		return err
+		return errors.Wrapf(err, "load config %s error", file)
 	}
 	return nil
 }
