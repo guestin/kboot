@@ -264,7 +264,7 @@ func (this *_ctx) execute() {
 		if err != nil {
 			this.logger.With(
 				log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Red, true))).
-				Fatal("init failed  : ", zap.Error(err))
+				Panic("init failed  : ", zap.Error(err))
 			return
 		}
 		this.logger.With(
