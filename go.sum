@@ -25,8 +25,8 @@ github.com/go-viper/mapstructure/v2 v2.4.0/go.mod h1:oJDH3BJKyqBA2TXFhDsKDGDTlnd
 github.com/google/go-cmp v0.7.0 h1:wk8382ETsv4JYUZwIsn6YpYiWiBsYLSJiTsyBybVuN8=
 github.com/google/go-cmp v0.7.0/go.mod h1:pXiqmnSA92OHEEa9HXL2W4E7lf9JzCmGVUdgjX3N/iU=
 github.com/google/uuid v1.2.0/go.mod h1:TIyPZe4MgqvfeYDBFedMoGGpEw/LqOeaOT+nhxU+yHo=
-github.com/guestin/log v1.0.1 h1:k0F+Cwx4zXDxxwGjQxAY9qtW+Wv4P0A8/T4qdzQcwfs=
-github.com/guestin/log v1.0.1/go.mod h1:wTf3/jPnIvOEuZ5n+FsoxYTThPe/FCu9Cwg5oPJ3BNw=
+github.com/guestin/log v1.0.3 h1:l4NUoUXYygQ1eBW1EMkdYvlsyLQ1I/VSfjCEN4X4iQw=
+github.com/guestin/log v1.0.3/go.mod h1:sNmSzy2D/QW8F8R0LwLxcXLuOy5QJP8N3YxY4LGqIqI=
 github.com/guestin/mob v1.1.1 h1:OyE8UBlxsOGnJXlLcetHoLHg5v7i5SitHSJ7Hg/dQLY=
 github.com/guestin/mob v1.1.1/go.mod h1:ebaN8Zzo941I8qwr/K5GodOB7ca1e1aRwyqMVNK6kuc=
 github.com/kr/pretty v0.1.0/go.mod h1:dAy3ld7l9f0ibDNOQOHHMYYIIbhfbHSm3C4ZsoJORNo=
