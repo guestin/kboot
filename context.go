@@ -257,6 +257,14 @@ func (this *_ctx) execute() {
 	}()
 
 	initer := func(unitItem *unitImpl) {
+		defer func() {
+			exitPanic := recover()
+			if exitPanic != nil {
+				this.logger.With(
+					log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Red, true))).
+					Panic("init panic", zap.Any("error", exitPanic))
+			}
+		}()
 		this.logger.With(
 			log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Yellow, true))).
 			Info("start init...")
