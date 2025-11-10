@@ -262,7 +262,7 @@ func (this *_ctx) execute() {
 			if exitPanic != nil {
 				this.logger.With(
 					log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Red, true))).
-					Panic("init panic", zap.Any("error", exitPanic))
+					Fatal("init panic", zap.Any("error", exitPanic))
 			}
 		}()
 		this.logger.With(
@@ -272,7 +272,7 @@ func (this *_ctx) execute() {
 		if err != nil {
 			this.logger.With(
 				log.UseSubTag(log.NewFixStyleText(unitItem.GetName(), log.Red, true))).
-				Panic("init failed  : ", zap.Error(err))
+				Fatal("init failed  : ", zap.Error(err))
 			return
 		}
 		this.logger.With(
