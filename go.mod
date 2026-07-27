@@ -6,7 +6,7 @@ require (
 	github.com/go-playground/universal-translator v0.18.1
 	github.com/go-playground/validator/v10 v10.30.3
 	github.com/guestin/log v1.0.3
-	github.com/guestin/mob v1.1.3
+	github.com/guestin/mob v1.1.5
 	github.com/ooopSnake/assert.go v1.0.1
 	github.com/pkg/errors v0.9.1
 	github.com/spf13/pflag v1.0.10
