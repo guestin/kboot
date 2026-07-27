@@ -11,6 +11,7 @@ import (
 type Validator interface {
 	Validate(i interface{}) error
 	Raw() *validator.Validate
+	// Translator return Translator
 	Translator() ut.Translator
 }
 
