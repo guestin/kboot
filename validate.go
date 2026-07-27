@@ -3,6 +3,7 @@ package kboot
 import (
 	"reflect"
 
+	ut "github.com/go-playground/universal-translator"
 	"github.com/go-playground/validator/v10"
 	"github.com/guestin/mob/mvalidate"
 )
@@ -10,6 +11,7 @@ import (
 type Validator interface {
 	Validate(i interface{}) error
 	Raw() *validator.Validate
+	Translator() ut.Translator
 }
 
 var _mValidator Validator
@@ -29,6 +31,10 @@ func init() {
 
 type _validator struct {
 	v mvalidate.Validator
+}
+
+func (this *_validator) Translator() ut.Translator {
+	return this.v.Translator()
 }
 
 func (this *_validator) Raw() *validator.Validate {
